@@ -138,5 +138,12 @@ typedef NSUInteger FBRequestState;
  */
 - (void)request:(FBRequest *)request didLoadRawResponse:(NSData *)data;
 
+/**
+ * Called when the request sends data to the server. Use this to track upload progress.
+ */
+- (void)request:(FBRequest *)request didSendBodyData:(NSInteger)bytesWritten totalBytesWritten:(NSInteger)totalBytesWritten totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite;
+
+
+
 @end
 
