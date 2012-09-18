@@ -30,6 +30,7 @@ static NSArray* _cdnHosts;
 @property (nonatomic, retain) NSURLConnection *connection;
 @property (nonatomic, retain) NSMutableData *data;
 @property (nonatomic, copy) FBURLConnectionHandler handler;
+@property (nonatomic, copy) FBURLUploadProgressHandler uploadProgressHandler;
 @property (nonatomic, retain) NSURLResponse *response;
 @property (nonatomic) unsigned long requestStartTime;
 @property (nonatomic, readonly) NSUInteger loggerSerialNumber;
@@ -53,6 +54,7 @@ static NSArray* _cdnHosts;
 @synthesize requestStartTime = _requestStartTime;
 @synthesize response = _response;
 @synthesize skipRoundtripIfCached = _skipRoundtripIfCached;
+@synthesize uploadProgressHandler = _uploadProgressHandler;
 
 #pragma mark - Lifecycle
 
@@ -77,6 +79,15 @@ static NSArray* _cdnHosts;
 
 - (FBURLConnection *)initWithRequest:(NSURLRequest *)request
                skipRoundTripIfCached:(BOOL)skipRoundtripIfCached
+                   completionHandler:(FBURLConnectionHandler)handler
+{
+	return [self initWithRequest:request skipRoundTripIfCached:skipRoundtripIfCached uploadProgressHandler:nil completionHandler:handler];
+}
+
+
+- (FBURLConnection *)initWithRequest:(NSURLRequest *)request
+               skipRoundTripIfCached:(BOOL)skipRoundtripIfCached
+			   uploadProgressHandler:(FBURLUploadProgressHandler)uploadProgressHandler
                    completionHandler:(FBURLConnectionHandler)handler
 {
     if (self = [super init]) {
@@ -111,6 +122,7 @@ static NSArray* _cdnHosts;
                 [url absoluteString]];
             
             self.handler = handler;
+			self.uploadProgressHandler = uploadProgressHandler;
         }
 
         // always attempt to autoPublish.  this function internally
@@ -205,7 +217,7 @@ didReceiveResponse:(NSURLResponse *)response
     [self.data setLength:0];
 }
 
-- (void)connection:(NSURLResponse *)connection
+- (void)connection:(NSURLConnection *)connection
     didReceiveData:(NSData *)data
 {
     [self.data appendData:data];
@@ -265,6 +277,16 @@ didReceiveResponse:(NSURLResponse *)response
     }
     
     return request;
+}
+
+- (void)connection:(NSURLConnection *)connection
+   didSendBodyData:(NSInteger)bytesWritten
+ totalBytesWritten:(NSInteger)totalBytesWritten
+totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite
+{
+	if (_uploadProgressHandler) {
+		_uploadProgressHandler(self, totalBytesWritten, totalBytesExpectedToWrite);
+	}
 }
 
 - (BOOL)isCDNURL:(NSURL *)url
